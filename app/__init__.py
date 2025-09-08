@@ -1,0 +1,1 @@
+"""MyIdeaCopilot Backend Application"""
