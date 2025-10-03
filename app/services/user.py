@@ -180,30 +180,34 @@ class UserService:
     async def get_user_setting(user_id: str, setting_key: str, access_token: str = None) -> UserSetting:
         """
         Get a specific setting for a user
-        
+    
         Args:
             user_id: User's ID
             setting_key: Setting key
             access_token: JWT access token for authenticated operations
-            
+        
         Returns:
             User setting
-            
+        
         Raises:
             NotFoundError: If setting not found
         """
         try:
             client = get_authenticated_client(access_token) if access_token else supabase_client
-            response = client.table("user_settings").select("*").eq("user_id", user_id).eq("setting_key", setting_key).single().execute()
-            
-            if not response.data:
-                raise NotFoundError("Setting not found")
-            
-            return UserSetting(**response.data)
-            
+            response = client.table("user_settings").select("*").eq("user_id", user_id).eq("setting_key", setting_key).execute()
+        
+            # Check if data exists BEFORE trying to use .single()
+            if not response.data or len(response.data) == 0:
+                raise NotFoundError(f"Setting '{setting_key}' not found")
+        
+            return UserSetting(**response.data[0])
+        
+        except NotFoundError:
+            raise
         except Exception as e:
-            if "not found" in str(e).lower():
-                raise NotFoundError("Setting not found")
+            error_str = str(e).lower()
+            if "pgrst116" in error_str or "0 rows" in error_str or "not found" in error_str:
+                raise NotFoundError(f"Setting '{setting_key}' not found")
             raise InternalServerError(f"Failed to fetch setting: {str(e)}")
     
     @staticmethod

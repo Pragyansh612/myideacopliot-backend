@@ -1,4 +1,4 @@
-"""User router for profile and settings management"""
+"""User router for profile and settings management - FIXED"""
 from typing import List
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
@@ -80,7 +80,6 @@ async def update_user_profile(request: Request, profile_data: dict):
         logger.debug(f"Updating profile for user: {user_id}")
         
         # Convert dict to UserProfileUpdate schema
-        # You'll need to import and use your actual UserProfileUpdate schema
         from app.schemas.user import UserProfileUpdate
         update_data = UserProfileUpdate(**profile_data)
         
@@ -115,7 +114,7 @@ async def get_settings(request: Request):
     """
     try:
         user = require_auth(request)
-        user_id = user.id
+        user_id = user.get("id")  # FIXED: Changed from user.id to user.get("id")
         
         settings = await UserService.get_user_settings(user_id)
         
@@ -125,7 +124,10 @@ async def get_settings(request: Request):
             message="Settings retrieved successfully",
             data=settings_data
         )
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
+        logger.error(f"Error in get_settings: {str(e)}")
         return JSONResponse(
             status_code=500,
             content=ErrorResponse(message="Failed to retrieve settings").dict()
@@ -141,7 +143,7 @@ async def get_setting(request: Request, setting_key: str):
     """
     try:
         user = require_auth(request)
-        user_id = user.id
+        user_id = user.get("id")  # FIXED: Changed from user.id to user.get("id")
         
         setting = await UserService.get_user_setting(user_id, setting_key)
         
@@ -149,12 +151,12 @@ async def get_setting(request: Request, setting_key: str):
             message="Setting retrieved successfully",
             data=UserSettingResponse(**setting.dict()).dict()
         )
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except NotFoundError as e:
-        return JSONResponse(
-            status_code=e.status_code,
-            content=ErrorResponse(message=str(e.detail)).dict()
-        )
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        logger.error(f"Error in get_setting: {str(e)}")
         return JSONResponse(
             status_code=500,
             content=ErrorResponse(message="Failed to retrieve setting").dict()
@@ -170,7 +172,7 @@ async def create_setting(request: Request, setting_data: UserSettingCreate):
     """
     try:
         user = require_auth(request)
-        user_id = user.id
+        user_id = user.get("id")  # FIXED: Changed from user.id to user.get("id")
         
         created_setting = await UserService.create_user_setting(user_id, setting_data)
         
@@ -178,6 +180,8 @@ async def create_setting(request: Request, setting_data: UserSettingCreate):
             message="Setting created successfully",
             data=UserSettingResponse(**created_setting.dict()).dict()
         )
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except (ConflictError, ValidationError) as e:
         return JSONResponse(
             status_code=e.status_code,
@@ -199,7 +203,7 @@ async def update_setting(request: Request, setting_key: str, setting_data: UserS
     """
     try:
         user = require_auth(request)
-        user_id = user.id
+        user_id = user.get("id")  # FIXED: Changed from user.id to user.get("id")
         
         updated_setting = await UserService.update_user_setting(user_id, setting_key, setting_data)
         
@@ -207,6 +211,8 @@ async def update_setting(request: Request, setting_key: str, setting_data: UserS
             message="Setting updated successfully",
             data=UserSettingResponse(**updated_setting.dict()).dict()
         )
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except NotFoundError as e:
         return JSONResponse(
             status_code=e.status_code,
@@ -228,13 +234,15 @@ async def delete_setting(request: Request, setting_key: str):
     """
     try:
         user = require_auth(request)
-        user_id = user.id
+        user_id = user.get("id")  # FIXED: Changed from user.id to user.get("id")
         
         await UserService.delete_user_setting(user_id, setting_key)
         
         return SuccessResponse(
             message="Setting deleted successfully"
         )
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except NotFoundError as e:
         return JSONResponse(
             status_code=e.status_code,

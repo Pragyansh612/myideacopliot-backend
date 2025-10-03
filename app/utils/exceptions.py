@@ -1,38 +1,45 @@
-"""Custom exceptions for the application"""
-from fastapi import HTTPException, status
+"""Custom exceptions"""
 
 
-class AuthenticationError(HTTPException):
+class AppException(Exception):
+    """Base application exception"""
+    def __init__(self, detail: str, status_code: int = 500):
+        self.detail = detail
+        self.status_code = status_code
+        super().__init__(self.detail)
+
+
+class AuthenticationError(AppException):
     """Authentication failed"""
-    def __init__(self, detail: str = "Authentication failed"):
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+    def __init__(self, detail: str = "Authentication required"):
+        super().__init__(detail, 401)
 
 
-class AuthorizationError(HTTPException):
-    """Authorization failed"""
-    def __init__(self, detail: str = "Not authorized to access this resource"):
-        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+class ForbiddenError(AppException):
+    """Access forbidden"""
+    def __init__(self, detail: str = "Access forbidden"):
+        super().__init__(detail, 403)
 
 
-class NotFoundError(HTTPException):
+class NotFoundError(AppException):
     """Resource not found"""
     def __init__(self, detail: str = "Resource not found"):
-        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+        super().__init__(detail, 404)
 
 
-class ValidationError(HTTPException):
-    """Validation failed"""
-    def __init__(self, detail: str = "Validation failed"):
-        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-
-
-class ConflictError(HTTPException):
+class ConflictError(AppException):
     """Resource conflict"""
     def __init__(self, detail: str = "Resource conflict"):
-        super().__init__(status_code=status.HTTP_409_CONFLICT, detail=detail)
+        super().__init__(detail, 409)
 
 
-class InternalServerError(HTTPException):
+class ValidationError(AppException):
+    """Validation error"""
+    def __init__(self, detail: str = "Validation error"):
+        super().__init__(detail, 422)
+
+
+class InternalServerError(AppException):
     """Internal server error"""
     def __init__(self, detail: str = "Internal server error"):
-        super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+        super().__init__(detail, 500)
