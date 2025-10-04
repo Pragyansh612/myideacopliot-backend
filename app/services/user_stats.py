@@ -149,7 +149,7 @@ class UserStatsService:
             update = UserStatsUpdate(**{field: current_value + amount})
             
             # Also update last activity date
-            update.last_activity_date = date.today()
+            update.last_activity_date = datetime.utcnow().date()
             
             return await UserStatsService.update_user_stats(user_id, update, access_token)
             
@@ -171,7 +171,7 @@ class UserStatsService:
             
             update = UserStatsUpdate(
                 total_xp=new_xp,
-                last_activity_date=date.today()
+                last_activity_date=datetime.utcnow().date()
             )
             
             return await UserStatsService.update_user_stats(user_id, update, access_token)

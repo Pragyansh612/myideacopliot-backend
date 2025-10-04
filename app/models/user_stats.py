@@ -1,6 +1,5 @@
-### filename: app/models/user_stats.py
 """User stats model"""
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional, Union
 from datetime import datetime, date
 from uuid import UUID
@@ -8,6 +7,8 @@ from uuid import UUID
 
 class UserStats(BaseModel):
     """User statistics model"""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID
     user_id: UUID
     total_xp: int = 0
@@ -24,26 +25,24 @@ class UserStats(BaseModel):
 
     @field_validator('last_activity_date', mode='before')
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v) -> Optional[date]:
         """Parse date from string if needed"""
-        if v is None:
+        if v is None or v == '':
             return None
-        if isinstance(v, date) and not isinstance(v, datetime):
+        if isinstance(v, date):
             return v
-        if isinstance(v, datetime):
-            return v.date()
         if isinstance(v, str):
-            try:
-                # Try parsing as date (YYYY-MM-DD)
-                return date.fromisoformat(v)
-            except ValueError:
-                # If it fails, try parsing as datetime and extract date
+            # Try to parse as date string (YYYY-MM-DD)
+            if len(v) == 10 and v.count('-') == 2:
                 try:
-                    dt = datetime.fromisoformat(v.replace('Z', '+00:00'))
-                    return dt.date()
-                except ValueError:
-                    return None
-        return v
-
-    class Config:
-        from_attributes = True
+                    parts = v.split('-')
+                    return date(int(parts[0]), int(parts[1]), int(parts[2]))
+                except (ValueError, IndexError):
+                    pass
+            # Try datetime parsing
+            try:
+                dt = datetime.fromisoformat(v.replace('Z', '+00:00'))
+                return dt.date()
+            except ValueError:
+                pass
+        return None
