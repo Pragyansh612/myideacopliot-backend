@@ -1,39 +1,38 @@
-"""Database connection and utilities"""
+"""Database configuration and Supabase client"""
 from supabase import create_client, Client
 from app.core.config import settings
+import logging
 
-def get_supabase_client(use_service_role: bool = False) -> Client:
-    """
-    Create and return a Supabase client instance
-    
-    Args:
-        use_service_role: If True, use service role key (bypasses RLS)
-    
-    Returns:
-        Supabase client instance
-    """
-    key = settings.SUPABASE_SERVICE_ROLE_KEY if use_service_role else settings.SUPABASE_ANON_KEY
-    return create_client(settings.SUPABASE_URL, key)
+logger = logging.getLogger(__name__)
+
+# Service role client for admin operations
+supabase_client: Client = create_client(
+    settings.SUPABASE_URL,
+    settings.SUPABASE_SERVICE_ROLE_KEY
+)
+
+# Admin client alias (same as service role client)
+supabase_admin: Client = supabase_client
+
+# Anon client for user operations
+supabase_anon_client: Client = create_client(
+    settings.SUPABASE_URL,
+    settings.SUPABASE_ANON_KEY
+)
+
 
 def get_authenticated_client(access_token: str) -> Client:
-    """
-    Create a Supabase client with an authenticated session
+    """Get Supabase client with user authentication"""
+    if not access_token:
+        return supabase_anon_client
     
-    Args:
-        access_token: JWT access token
+    # Create client with user's access token
+    client = create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_ANON_KEY
+    )
     
-    Returns:
-        Authenticated Supabase client instance
-    """
-    client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
-    
-    # Set the session with the access token
-    # Note: This is a workaround since we don't have the refresh token
-    # The client will use this token for authenticated requests
-    client.options.headers["Authorization"] = f"Bearer {access_token}"
+    # Set the auth token for RLS
+    client.postgrest.auth(access_token)
     
     return client
-
-# Default client instances
-supabase_client = get_supabase_client()
-supabase_admin = get_supabase_client(use_service_role=True)

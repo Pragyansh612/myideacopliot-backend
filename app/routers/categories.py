@@ -24,7 +24,7 @@ async def get_categories(request: Request):
         
         return SuccessResponse(
             message="Categories retrieved successfully",
-            data={"categories": [cat.dict() for cat in categories]}
+            data={"categories": [cat.model_dump() for cat in categories]}
         )
         
     except Exception as e:
@@ -44,7 +44,7 @@ async def create_category(request: Request, category_data: CategoryCreate):
         
         return SuccessResponse(
             message="Category created successfully",
-            data={"category": category.dict()}
+            data={"category": category.model_dump()}
         )
         
     except ValidationError as e:
@@ -66,7 +66,7 @@ async def update_category(request: Request, category_id: str, category_data: Cat
         
         return SuccessResponse(
             message="Category updated successfully",
-            data={"category": category.dict()}
+            data={"category": category.model_dump()}
         )
         
     except NotFoundError as e:

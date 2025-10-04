@@ -1,7 +1,7 @@
-"""Idea request/response schemas"""
-from typing import Optional, List
+"""Idea-related Pydantic schemas"""
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from typing import Optional, List
+from pydantic import BaseModel, Field
 from enum import Enum
 
 
@@ -19,23 +19,17 @@ class StatusEnum(str, Enum):
     paused = "paused"
 
 
-class CaptureTypeEnum(str, Enum):
-    text = "text"
-    voice = "voice"
-    clipper = "clipper"
-    screenshot = "screenshot"
+# ==================== CATEGORIES ====================
 
-
-# Category Schemas
 class CategoryCreate(BaseModel):
     name: str = Field(..., max_length=100)
-    color: Optional[str] = Field(None, max_length=7)
+    color: Optional[str] = Field(None, max_length=20)
     description: Optional[str] = None
 
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=100)
-    color: Optional[str] = Field(None, max_length=7)
+    color: Optional[str] = Field(None, max_length=20)
     description: Optional[str] = None
 
 
@@ -43,27 +37,27 @@ class CategoryResponse(BaseModel):
     id: str
     user_id: str
     name: str
-    color: Optional[str]
-    description: Optional[str]
+    color: Optional[str] = None
+    description: Optional[str] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
 
 
-# Idea Schemas
+# ==================== IDEAS ====================
+
 class IdeaCreate(BaseModel):
-    title: str = Field(..., max_length=200)
+    title: str = Field(..., max_length=200, min_length=1)
     description: Optional[str] = None
-    tags: List[str] = []
+    tags: List[str] = Field(default_factory=list)
     category_id: Optional[str] = None
     priority: PriorityEnum = PriorityEnum.medium
-    capture_type: CaptureTypeEnum = CaptureTypeEnum.text
-    voice_transcription: Optional[str] = None
+    status: StatusEnum = StatusEnum.new
     effort_score: Optional[int] = Field(None, ge=1, le=10)
     impact_score: Optional[int] = Field(None, ge=1, le=10)
     interest_score: Optional[int] = Field(None, ge=1, le=10)
-    reminder_date: Optional[datetime] = None
+    capture_type: str = "text"
 
 
 class IdeaUpdate(BaseModel):
@@ -76,51 +70,40 @@ class IdeaUpdate(BaseModel):
     effort_score: Optional[int] = Field(None, ge=1, le=10)
     impact_score: Optional[int] = Field(None, ge=1, le=10)
     interest_score: Optional[int] = Field(None, ge=1, le=10)
-    is_private: Optional[bool] = None
     is_archived: Optional[bool] = None
-    reminder_date: Optional[datetime] = None
 
 
 class IdeaResponse(BaseModel):
     id: str
     user_id: str
     title: str
-    description: Optional[str]
+    description: Optional[str] = None
     capture_type: str
-    voice_transcription: Optional[str]
-    tags: List[str]
-    category_id: Optional[str]
+    tags: List[str] = []
+    category_id: Optional[str] = None
     priority: str
     status: str
-    effort_score: Optional[int]
-    impact_score: Optional[int]
-    interest_score: Optional[int]
-    overall_score: Optional[float]
-    progress_percentage: int
-    is_private: bool
-    is_archived: bool
-    archived_at: Optional[datetime]
-    reminder_date: Optional[datetime]
+    effort_score: Optional[int] = None
+    impact_score: Optional[int] = None
+    interest_score: Optional[int] = None
+    overall_score: Optional[float] = None
+    progress_percentage: int = 0
+    is_private: bool = True
+    is_archived: bool = False
+    archived_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-    last_accessed_at: datetime
-    version: int
 
     class Config:
         from_attributes = True
 
 
-class IdeaDetailResponse(IdeaResponse):
-    """Idea with nested phases and features"""
-    phases: List['PhaseResponse'] = []
-    features: List['FeatureResponse'] = []
+# ==================== PHASES ====================
 
-
-# Phase Schemas
 class PhaseCreate(BaseModel):
     name: str = Field(..., max_length=200)
     description: Optional[str] = None
-    order_index: Optional[int] = None
+    order_index: int = 0
     due_date: Optional[datetime] = None
 
 
@@ -136,11 +119,11 @@ class PhaseResponse(BaseModel):
     id: str
     idea_id: str
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
     order_index: int
-    is_completed: bool
-    completed_at: Optional[datetime]
-    due_date: Optional[datetime]
+    is_completed: bool = False
+    completed_at: Optional[datetime] = None
+    due_date: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
@@ -148,7 +131,8 @@ class PhaseResponse(BaseModel):
         from_attributes = True
 
 
-# Feature Schemas
+# ==================== FEATURES ====================
+
 class FeatureCreate(BaseModel):
     title: str = Field(..., max_length=200)
     description: Optional[str] = None
@@ -167,13 +151,13 @@ class FeatureUpdate(BaseModel):
 class FeatureResponse(BaseModel):
     id: str
     idea_id: str
-    phase_id: Optional[str]
+    phase_id: Optional[str] = None
     title: str
-    description: Optional[str]
-    is_completed: bool
-    completed_at: Optional[datetime]
+    description: Optional[str] = None
+    is_completed: bool = False
+    completed_at: Optional[datetime] = None
     priority: str
-    order_index: Optional[int]
+    order_index: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -181,16 +165,17 @@ class FeatureResponse(BaseModel):
         from_attributes = True
 
 
-# List/Filter Schemas
+# ==================== PAGINATION ====================
+
 class IdeaListParams(BaseModel):
-    limit: int = Field(50, ge=1, le=100)
-    offset: int = Field(0, ge=0)
+    limit: int = 50
+    offset: int = 0
     category_id: Optional[str] = None
     tag: Optional[str] = None
     priority: Optional[PriorityEnum] = None
     status: Optional[StatusEnum] = None
-    sort_by: str = Field("created_at", pattern="^(created_at|updated_at|overall_score|title)$")
-    sort_order: str = Field("desc", pattern="^(asc|desc)$")
+    sort_by: str = "created_at"
+    sort_order: str = "desc"
     search: Optional[str] = None
 
 
@@ -201,6 +186,21 @@ class PaginatedIdeaResponse(BaseModel):
     offset: int
     has_more: bool
 
+    @classmethod
+    def create(cls, ideas: List[IdeaResponse], total: int, limit: int, offset: int):
+        return cls(
+            ideas=ideas,
+            total=total,
+            limit=limit,
+            offset=offset,
+            has_more=(offset + limit) < total
+        )
 
-# Forward references
-IdeaDetailResponse.model_rebuild()
+
+class IdeaDetailResponse(BaseModel):
+    idea: IdeaResponse
+    phases: List[PhaseResponse] = []
+    features: List[FeatureResponse] = []
+
+    class Config:
+        from_attributes = True

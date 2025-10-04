@@ -24,7 +24,7 @@ async def create_feature_for_idea(request: Request, idea_id: str, feature_data: 
         
         return SuccessResponse(
             message="Feature created successfully",
-            data={"feature": feature.dict()}
+            data={"feature": feature.model_dump()}
         )
         
     except (NotFoundError, ForbiddenError) as e:
@@ -47,7 +47,7 @@ async def create_feature_for_phase(request: Request, phase_id: str, feature_data
         
         return SuccessResponse(
             message="Feature created successfully",
-            data={"feature": feature.dict()}
+            data={"feature": feature.model_dump()}
         )
         
     except (NotFoundError, ForbiddenError) as e:
@@ -70,7 +70,7 @@ async def get_features(request: Request, idea_id: str):
         
         return SuccessResponse(
             message="Features retrieved successfully",
-            data={"features": [feature.dict() for feature in features]}
+            data={"features": [feature.model_dump() for feature in features]}
         )
         
     except (NotFoundError, ForbiddenError) as e:
@@ -93,7 +93,7 @@ async def update_feature(request: Request, feature_id: str, feature_data: Featur
         
         return SuccessResponse(
             message="Feature updated successfully",
-            data={"feature": feature.dict()}
+            data={"feature": feature.model_dump()}
         )
         
     except (NotFoundError, ForbiddenError) as e:

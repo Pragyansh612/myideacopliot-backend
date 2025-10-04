@@ -27,7 +27,7 @@ async def create_idea(request: Request, idea_data: IdeaCreate):
         
         return SuccessResponse(
             message="Idea created successfully",
-            data={"idea": idea.dict()}
+            data={"idea": idea.model_dump()}
         )
         
     except ValidationError as e:
@@ -46,8 +46,8 @@ async def get_ideas(
     tag: Optional[str] = None,
     priority: Optional[PriorityEnum] = None,
     status: Optional[StatusEnum] = None,
-    sort_by: str = Query("created_at", regex="^(created_at|updated_at|overall_score|title)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("created_at", pattern="^(created_at|updated_at|overall_score|title)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     search: Optional[str] = None
 ):
     """Get paginated list of ideas with filters"""
@@ -72,7 +72,7 @@ async def get_ideas(
         
         return SuccessResponse(
             message="Ideas retrieved successfully",
-            data=result.dict()
+            data=result.model_dump()
         )
         
     except Exception as e:
@@ -92,7 +92,7 @@ async def get_idea(request: Request, idea_id: str):
         
         return SuccessResponse(
             message="Idea retrieved successfully",
-            data={"idea": idea.dict()}
+            data={"idea": idea.model_dump()}
         )
         
     except NotFoundError as e:
@@ -116,7 +116,7 @@ async def update_idea(request: Request, idea_id: str, idea_data: IdeaUpdate):
         
         return SuccessResponse(
             message="Idea updated successfully",
-            data={"idea": idea.dict()}
+            data={"idea": idea.model_dump()}
         )
         
     except NotFoundError as e:

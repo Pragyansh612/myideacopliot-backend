@@ -6,7 +6,7 @@ from app.schemas.idea import (
     IdeaCreate, IdeaUpdate, CategoryCreate, CategoryUpdate,
     PhaseCreate, PhaseUpdate, FeatureCreate, FeatureUpdate,
     IdeaListParams, PaginatedIdeaResponse, IdeaDetailResponse,
-    CategoryResponse, PhaseResponse, FeatureResponse
+    CategoryResponse, PhaseResponse, FeatureResponse, IdeaResponse
 )
 from app.utils.exceptions import NotFoundError, ForbiddenError, InternalServerError
 import logging
@@ -36,7 +36,7 @@ class IdeaService:
         try:
             client = get_authenticated_client(access_token) if access_token else supabase_client
             
-            insert_data = {"user_id": user_id, **category_data.dict()}
+            insert_data = {"user_id": user_id, **category_data.model_dump()}
             response = client.table("categories").insert(insert_data).execute()
             
             if not response.data:
@@ -44,7 +44,7 @@ class IdeaService:
             
             return CategoryResponse(**response.data[0])
         except Exception as e:
-            logger.error(f"Error creating category: {str(e)}")
+            logger.error(f"Error creating category: {e}")
             raise InternalServerError(f"Failed to create category: {str(e)}")
     
     @staticmethod
@@ -70,7 +70,7 @@ class IdeaService:
         try:
             client = get_authenticated_client(access_token) if access_token else supabase_client
             
-            update_dict = category_data.dict(exclude_unset=True)
+            update_dict = category_data.model_dump(exclude_unset=True)
             response = client.table("categories").update(update_dict).eq("id", category_id).eq("user_id", user_id).execute()
             
             if not response.data:
@@ -103,12 +103,12 @@ class IdeaService:
     # ==================== IDEAS ====================
     
     @staticmethod
-    async def create_idea(user_id: str, idea_data: IdeaCreate, access_token: str = None):
+    async def create_idea(user_id: str, idea_data: IdeaCreate, access_token: str = None) -> IdeaResponse:
         """Create a new idea"""
         try:
             client = get_authenticated_client(access_token) if access_token else supabase_client
             
-            insert_data = {"user_id": user_id, **idea_data.dict(exclude_unset=True)}
+            insert_data = {"user_id": user_id, **idea_data.model_dump(exclude_unset=True)}
             
             # Handle enum conversion
             if "priority" in insert_data and insert_data["priority"]:
@@ -121,10 +121,9 @@ class IdeaService:
             if not response.data:
                 raise InternalServerError("Failed to create idea")
             
-            from app.models.idea import IdeaModel
-            return IdeaModel(**response.data[0])
+            return IdeaResponse(**response.data[0])
         except Exception as e:
-            logger.error(f"Error creating idea: {str(e)}")
+            logger.error(f"Error creating idea: {e}")
             raise InternalServerError(f"Failed to create idea: {str(e)}")
     
     @staticmethod
@@ -153,10 +152,9 @@ class IdeaService:
             
             response = query.execute()
             
-            from app.models.idea import IdeaModel
-            ideas = [IdeaModel(**idea) for idea in response.data]
+            ideas = [IdeaResponse(**idea) for idea in response.data]
             
-            return PaginatedIdeaResponse(
+            return PaginatedIdeaResponse.create(
                 ideas=ideas,
                 total=response.count or 0,
                 limit=params.limit,
@@ -179,8 +177,7 @@ class IdeaService:
             if not idea_response.data:
                 raise NotFoundError("Idea not found")
             
-            from app.models.idea import IdeaModel
-            idea = IdeaModel(**idea_response.data[0])
+            idea = IdeaResponse(**idea_response.data[0])
             
             # Get phases and features
             phases = await IdeaService.get_phases(user_id, idea_id, access_token)
@@ -194,14 +191,14 @@ class IdeaService:
             raise InternalServerError(f"Failed to fetch idea: {str(e)}")
     
     @staticmethod
-    async def update_idea(user_id: str, idea_id: str, idea_data: IdeaUpdate, access_token: str = None):
+    async def update_idea(user_id: str, idea_id: str, idea_data: IdeaUpdate, access_token: str = None) -> IdeaResponse:
         """Update an idea"""
         try:
             client = get_authenticated_client(access_token) if access_token else supabase_client
             
             await IdeaService._verify_access(user_id, idea_id, True, access_token)
             
-            update_dict = idea_data.dict(exclude_unset=True)
+            update_dict = idea_data.model_dump(exclude_unset=True)
             
             # Handle enum conversion
             if "priority" in update_dict and update_dict["priority"]:
@@ -214,8 +211,7 @@ class IdeaService:
             if not response.data:
                 raise NotFoundError("Idea not found")
             
-            from app.models.idea import IdeaModel
-            return IdeaModel(**response.data[0])
+            return IdeaResponse(**response.data[0])
         except (NotFoundError, ForbiddenError):
             raise
         except Exception as e:
@@ -252,7 +248,7 @@ class IdeaService:
             
             await IdeaService._verify_access(user_id, idea_id, True, access_token)
             
-            insert_data = {"idea_id": idea_id, **phase_data.dict()}
+            insert_data = {"idea_id": idea_id, **phase_data.model_dump()}
             response = client.table("phases").insert(insert_data).execute()
             
             if not response.data:
@@ -295,7 +291,7 @@ class IdeaService:
             idea_id = phase_response.data[0]["idea_id"]
             await IdeaService._verify_access(user_id, idea_id, True, access_token)
             
-            update_dict = phase_data.dict(exclude_unset=True)
+            update_dict = phase_data.model_dump(exclude_unset=True)
             response = client.table("phases").update(update_dict).eq("id", phase_id).execute()
             
             if not response.data:
@@ -339,7 +335,7 @@ class IdeaService:
             
             await IdeaService._verify_access(user_id, idea_id, True, access_token)
             
-            insert_data = {"idea_id": idea_id, **feature_data.dict()}
+            insert_data = {"idea_id": idea_id, **feature_data.model_dump()}
             if "priority" in insert_data and insert_data["priority"]:
                 insert_data["priority"] = insert_data["priority"].value
             
@@ -368,7 +364,7 @@ class IdeaService:
             idea_id = phase_response.data[0]["idea_id"]
             await IdeaService._verify_access(user_id, idea_id, True, access_token)
             
-            insert_data = {"idea_id": idea_id, "phase_id": phase_id, **feature_data.dict()}
+            insert_data = {"idea_id": idea_id, "phase_id": phase_id, **feature_data.model_dump()}
             if "priority" in insert_data and insert_data["priority"]:
                 insert_data["priority"] = insert_data["priority"].value
             
@@ -413,7 +409,7 @@ class IdeaService:
             idea_id = feature_response.data[0]["idea_id"]
             await IdeaService._verify_access(user_id, idea_id, True, access_token)
             
-            update_dict = feature_data.dict(exclude_unset=True)
+            update_dict = feature_data.model_dump(exclude_unset=True)
             if "priority" in update_dict and update_dict["priority"]:
                 update_dict["priority"] = update_dict["priority"].value
             
@@ -469,5 +465,5 @@ class IdeaService:
         except (NotFoundError, ForbiddenError):
             raise
         except Exception as e:
-            logger.error(f"Error verifying access: {str(e)}")
+            logger.error(f"Error verifying access: {e}")
             raise InternalServerError(f"Failed to verify access: {str(e)}")

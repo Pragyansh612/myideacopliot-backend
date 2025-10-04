@@ -4,6 +4,15 @@ import os
 from httpx import AsyncClient
 from app.main import app
 
+# Global variable to store created IDs during test session
+test_data = {
+    "category_id": None,
+    "idea_id": None,
+    "phase_id": None,
+    "feature_id": None
+}
+
+
 @pytest.fixture
 def auth_headers():
     """Get authentication headers from environment"""
@@ -30,6 +39,10 @@ async def test_create_category(auth_headers):
         data = response.json()
         assert data["success"] is True
         assert "category" in data["data"]
+        
+        # Store category ID for later tests
+        test_data["category_id"] = data["data"]["category"]["id"]
+        print(f"Created category ID: {test_data['category_id']}")
 
 
 @pytest.mark.asyncio
@@ -67,6 +80,10 @@ async def test_create_idea(auth_headers):
         data = response.json()
         assert data["success"] is True
         assert "idea" in data["data"]
+        
+        # Store idea ID for later tests
+        test_data["idea_id"] = data["data"]["idea"]["id"]
+        print(f"Created idea ID: {test_data['idea_id']}")
 
 
 @pytest.mark.asyncio
@@ -87,39 +104,53 @@ async def test_get_ideas_with_filters(auth_headers):
 @pytest.mark.asyncio
 async def test_get_idea_by_id(auth_headers):
     """Test getting a specific idea"""
-    idea_id = "test-idea-id"  # Replace with actual ID in real tests
+    # Skip if no idea was created
+    if not test_data["idea_id"]:
+        pytest.skip("No idea ID available, create idea first")
+    
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.get(
-            f"/api/ideas/{idea_id}",
+            f"/api/ideas/{test_data['idea_id']}",
             headers=auth_headers
         )
-        # Will return 404 in this test, but structure is correct
-        assert response.status_code in [200, 404]
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "idea" in data["data"]
 
 
 @pytest.mark.asyncio
 async def test_update_idea(auth_headers):
     """Test updating an idea"""
-    idea_id = "test-idea-id"
+    # Skip if no idea was created
+    if not test_data["idea_id"]:
+        pytest.skip("No idea ID available, create idea first")
+    
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.put(
-            f"/api/ideas/{idea_id}",
+            f"/api/ideas/{test_data['idea_id']}",
             headers=auth_headers,
             json={
                 "title": "Updated Idea Title",
                 "status": "in_progress"
             }
         )
-        assert response.status_code in [200, 404]
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["idea"]["title"] == "Updated Idea Title"
 
 
 @pytest.mark.asyncio
 async def test_create_phase(auth_headers):
     """Test creating a phase"""
-    idea_id = "test-idea-id"
+    # Skip if no idea was created
+    if not test_data["idea_id"]:
+        pytest.skip("No idea ID available, create idea first")
+    
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.post(
-            f"/api/ideas/{idea_id}/phases",
+            f"/api/ideas/{test_data['idea_id']}/phases",
             headers=auth_headers,
             json={
                 "name": "Phase 1: Planning",
@@ -127,16 +158,26 @@ async def test_create_phase(auth_headers):
                 "order_index": 0
             }
         )
-        assert response.status_code in [201, 404]
+        assert response.status_code == 201
+        data = response.json()
+        assert data["success"] is True
+        assert "phase" in data["data"]
+        
+        # Store phase ID for later tests
+        test_data["phase_id"] = data["data"]["phase"]["id"]
+        print(f"Created phase ID: {test_data['phase_id']}")
 
 
 @pytest.mark.asyncio
 async def test_create_feature(auth_headers):
     """Test creating a feature"""
-    idea_id = "test-idea-id"
+    # Skip if no idea was created
+    if not test_data["idea_id"]:
+        pytest.skip("No idea ID available, create idea first")
+    
     async with AsyncClient(app=app, base_url="http://test") as client:
         response = await client.post(
-            f"/api/ideas/{idea_id}/features",
+            f"/api/ideas/{test_data['idea_id']}/features",
             headers=auth_headers,
             json={
                 "title": "Feature 1",
@@ -144,4 +185,121 @@ async def test_create_feature(auth_headers):
                 "priority": "high"
             }
         )
-        assert response.status_code in [201, 404]
+        assert response.status_code == 201
+        data = response.json()
+        assert data["success"] is True
+        assert "feature" in data["data"]
+        
+        # Store feature ID for later tests
+        test_data["feature_id"] = data["data"]["feature"]["id"]
+        print(f"Created feature ID: {test_data['feature_id']}")
+
+
+@pytest.mark.asyncio
+async def test_get_phases(auth_headers):
+    """Test getting phases for an idea"""
+    if not test_data["idea_id"]:
+        pytest.skip("No idea ID available")
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get(
+            f"/api/ideas/{test_data['idea_id']}/phases",
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "phases" in data["data"]
+
+
+@pytest.mark.asyncio
+async def test_get_features(auth_headers):
+    """Test getting features for an idea"""
+    if not test_data["idea_id"]:
+        pytest.skip("No idea ID available")
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get(
+            f"/api/ideas/{test_data['idea_id']}/features",
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "features" in data["data"]
+
+
+@pytest.mark.asyncio
+async def test_update_feature(auth_headers):
+    """Test updating a feature"""
+    if not test_data["feature_id"]:
+        pytest.skip("No feature ID available")
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.put(
+            f"/api/features/{test_data['feature_id']}",
+            headers=auth_headers,
+            json={
+                "title": "Updated Feature",
+                "is_completed": True
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_delete_feature(auth_headers):
+    """Test deleting a feature"""
+    if not test_data["feature_id"]:
+        pytest.skip("No feature ID available")
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete(
+            f"/api/features/{test_data['feature_id']}",
+            headers=auth_headers
+        )
+        assert response.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_delete_phase(auth_headers):
+    """Test deleting a phase"""
+    if not test_data["phase_id"]:
+        pytest.skip("No phase ID available")
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete(
+            f"/api/phases/{test_data['phase_id']}",
+            headers=auth_headers
+        )
+        assert response.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_delete_idea(auth_headers):
+    """Test deleting an idea"""
+    if not test_data["idea_id"]:
+        pytest.skip("No idea ID available")
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete(
+            f"/api/ideas/{test_data['idea_id']}",
+            headers=auth_headers
+        )
+        assert response.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_delete_category(auth_headers):
+    """Test deleting a category"""
+    if not test_data["category_id"]:
+        pytest.skip("No category ID available")
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.delete(
+            f"/api/categories/{test_data['category_id']}",
+            headers=auth_headers
+        )
+        assert response.status_code == 204

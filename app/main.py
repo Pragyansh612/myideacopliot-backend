@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.middleware.auth import AuthMiddleware
-from app.routers import auth, user, ideas, categories, phases, features
+from app.routers import auth, user, ideas, categories, phases, features, share, comment, ai, competitor, achievement, notification, user_stats
 
 app = FastAPI(
     title="MyIdeaCopilot API",
@@ -31,6 +31,13 @@ app.include_router(categories.router)
 app.include_router(ideas.router)
 app.include_router(phases.router)
 app.include_router(features.router)
+app.include_router(share.router)
+app.include_router(comment.router)
+app.include_router(ai.router)
+app.include_router(competitor.router)
+app.include_router(achievement.router)
+app.include_router(notification.router)
+app.include_router(user_stats.router)
 
 @app.get("/")
 async def root():

@@ -24,7 +24,7 @@ async def create_phase(request: Request, idea_id: str, phase_data: PhaseCreate):
         
         return SuccessResponse(
             message="Phase created successfully",
-            data={"phase": phase.dict()}
+            data={"phase": phase.model_dump()}
         )
         
     except (NotFoundError, ForbiddenError) as e:
@@ -47,7 +47,7 @@ async def get_phases(request: Request, idea_id: str):
         
         return SuccessResponse(
             message="Phases retrieved successfully",
-            data={"phases": [phase.dict() for phase in phases]}
+            data={"phases": [phase.model_dump() for phase in phases]}
         )
         
     except (NotFoundError, ForbiddenError) as e:
@@ -70,7 +70,7 @@ async def update_phase(request: Request, phase_id: str, phase_data: PhaseUpdate)
         
         return SuccessResponse(
             message="Phase updated successfully",
-            data={"phase": phase.dict()}
+            data={"phase": phase.model_dump()}
         )
         
     except (NotFoundError, ForbiddenError) as e:
@@ -99,5 +99,3 @@ async def delete_phase(request: Request, phase_id: str):
     except Exception as e:
         logger.error(f"Error in delete_phase: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete phase")
-
-
